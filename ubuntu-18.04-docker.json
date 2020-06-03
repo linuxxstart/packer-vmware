@@ -1,0 +1,79 @@
+{
+    "variables": {
+        "hostname": "packer",
+        "domain": "local.br",
+        "ssh_user": "packer",
+        "ssh_pass": "packer@123"
+    },
+
+    "builders": [
+      {
+        "type": "vsphere-iso",
+        "vcenter_server":      "vcenter.local.br",
+        "username":            "everton@vsphere.local",
+        "password":            "Packer@123",
+        "insecure_connection": "true",
+
+        "vm_name": "ubuntu-docker",
+        "datastore":"datastore1",
+        "folder": "Templates",
+        "convert_to_template": "true",
+        "host": "vmware.local.br",
+        "network": "vlan90",
+        
+        "ssh_username": "{{user `ssh_user`}}",
+        "ssh_password": "{{user `ssh_pass`}}",
+
+        "guest_os_type": "ubuntu64Guest",
+
+        "CPUs":             2,
+        "RAM":              4096,
+         
+        "disk_controller_type":  "pvscsi",
+        "disk_size":        32768,
+        "disk_thin_provisioned": true,
+  
+        "network_card": "vmxnet3",
+  
+        "iso_paths": [
+          "[datastore1] isos/ubuntu-18.04.3-server-amd64.iso"
+        ],
+
+        "floppy_files": [
+          "./preseed.cfg"
+        ],
+        "boot_wait": "10s",
+        "boot_command": [
+          "<enter><wait><f6><wait><esc><wait>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+          "<bs><bs><bs>",
+          "/install/vmlinuz",
+          " initrd=/install/initrd.gz",
+          " priority=critical",
+          " locale=en_US",
+          " file=/media/preseed.cfg",
+          "<enter>"
+        ]
+      }
+    ],
+  
+    "provisioners": [
+      {
+        "type": "shell",
+        "execute_command": "echo '{{user `ssh_pass`}}' | {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+        "inline": [
+          "sed -i '/ swap / s/^/#/' /etc/fstab",
+          "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -",
+          "add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable'",
+          "apt update && apt -y dist-upgrade -y && apt -y install docker-ce"
+         ]
+      }
+    ]
+  }
